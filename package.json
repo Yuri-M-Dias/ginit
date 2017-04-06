@@ -1,7 +1,7 @@
 {
   "name": "ginit",
-  "version": "1.0.0",
-  "description": "\"git init\" on steroids",
+  "version": "0.0.1",
+  "description": "Personal \"git init\" on steroids",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,8 +10,8 @@
     "Git",
     "CLI"
   ],
-  "author": "yuri-m-dias",
-  "license": "ISC",
+  "author": "Yuri-M-Dias",
+  "license": "MIT",
   "bin": {
     "ginit": "./index.js"
   },

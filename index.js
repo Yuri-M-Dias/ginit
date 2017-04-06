@@ -2,6 +2,8 @@
 
 'use strict';
 
+// Terrible, terrible code.
+
 var chalk       = require('chalk');
 var clear       = require('clear');
 var CLI         = require('clui');
@@ -15,22 +17,43 @@ var git         = require('simple-git')();
 var touch       = require('touch');
 var fs          = require('fs');
 
+var github = new GitHubApi({
+  version: '3.0.0',
+});
+
+const rocketArt = `
+      |
+     / \\
+    / _ \\
+   |.o '.|
+   |'._.'|
+   |     |
+ ,'|  |  |\`.
+/  |  |  |  \\
+|,-'--|--'-.|
+`;
+const printGinitMessage = () => {
+  const message = 'Ginit - Yuri-M-Dias';
+  const chalkedMessage = chalk.green(
+    figlet.textSync(
+      message, { horizontalLayout: 'full' }
+    )
+  );
+  return chalkedMessage;
+};
+
+console.log(printGinitMessage());
+//console.log(chalk.blue(rocketArt));
+
 var files       = require('./lib/files');
 
-//clear();
-console.log(
-  chalk.yellow(
-    figlet.textSync('Ginit', { horizontalLayout: 'full' })
-  )
-);
-
-if (files.directoryExists('.git')) {
+if (files.hasGitDirectory()) {
   console.log(chalk.red('Already a git repository!'));
   process.exit();
 }
 
-function getGithubCredentials(callback) {
-  var questions = [
+const getGithubCredentials = () => {
+  const questions = [
     {
       name: 'username',
       type: 'input',
@@ -57,18 +80,14 @@ function getGithubCredentials(callback) {
     },
   ];
 
-  inquirer.prompt(questions).then(callback);
-}
+  return inquirer.prompt(questions);
+};
 
-var github = new GitHubApi({
-  version: '3.0.0',
-});
-
-function getGithubToken(callback) {
+const getGithubToken = () => {
   var prefs = new Preferences('ginit');
 
   if (prefs.github && prefs.github.token) {
-    return callback(null, prefs.github.token);
+    return Promise.resolve(prefs.github.token);
   }
 
   getGithubCredentials((credentials) => {
@@ -91,7 +110,7 @@ function getGithubToken(callback) {
       status.stop();
       console.log([err, res]);
       if (err) {
-        return callback(err);
+        return Promise.reject(err);
       }
 
       let token = res.data.token;
@@ -99,17 +118,17 @@ function getGithubToken(callback) {
         prefs.github = {
           token: token,
         };
-        return callback(null, token);
+        return Promise.resolve(prefs.github.token);
       }
 
-      return callback();
+      return Promise.reject(new Error('Invalid GitHub credentials'));
     });
 
   });
 
-}
+};
 
-function createRepo(callback) {
+const createRepo = (callback) => {
   var argv = require('minimist')(process.argv.slice(2));
 
   var questions = [
@@ -118,7 +137,7 @@ function createRepo(callback) {
       name: 'name',
       message: 'Enter a name for the repository:',
       default: argv._[0] || files.getCurrentDirectoryBase(),
-      validate: function (value) {
+      validate: (value) => {
         if (value.length) {
           return true;
         } else {
@@ -141,7 +160,7 @@ function createRepo(callback) {
     },
   ];
 
-  inquirer.prompt(questions).then(function (answers) {
+  inquirer.prompt(questions).then((answers) => {
     var status = new Spinner('Creating repository...');
     status.start();
 
@@ -153,7 +172,7 @@ function createRepo(callback) {
 
     github.repos.create(
       data,
-      function (err, res) {
+      (err, res) => {
         status.stop();
         if (err) {
           return callback(err);
@@ -163,9 +182,9 @@ function createRepo(callback) {
       }
     );
   });
-}
+};
 
-function createGitignore(callback) {
+const createGitignore = (callback) => {
   console.log(['create']);
   var filelist = _.without(fs.readdirSync('.'), '.git', '.gitignore');
 
@@ -180,7 +199,7 @@ function createGitignore(callback) {
           default: ['node_modules', 'bower_components'],
         },
       ]
-    ).then(function (answers) {
+    ).then((answers) => {
       if (answers.ignore.length) {
         fs.writeFileSync('.gitignore', answers.ignore.join('\n'));
       } else {
@@ -193,27 +212,29 @@ function createGitignore(callback) {
     touch('.gitignore');
     return callback();
   }
-}
+};
 
-function setupRepo(url, callback) {
+const setupRepo = (url, callback) => {
   var status = new Spinner('Setting up the repository...');
   status.start();
+
+  const initialMessage = ':rocket: science! Initial commit.';
 
   git
     .init()
     .add('.gitignore')
     .add('./*')
-    .commit('Initial commit')
+    .commit(initialMessage)
     .addRemote('origin', url)
     .push('origin', 'master')
     .then(() => {
       status.stop();
       return callback();
     });
-}
+};
 
-function githubAuth(callback) {
-  getGithubToken(function (err, token) {
+const githubAuth = (callback) => {
+  getGithubToken((err, token) => {
     if (err) {
       return callback(err);
     }
@@ -224,7 +245,7 @@ function githubAuth(callback) {
     });
     return callback(null, token);
   });
-}
+};
 
 githubAuth((err, authed) => {
   if (err) {
