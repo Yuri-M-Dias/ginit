@@ -20,7 +20,7 @@
     "clear": "0.0.1",
     "clui": "^0.3.1",
     "figlet": "^1.2.0",
-    "github": "^9.2.0",
+    "github": "^14.0.0",
     "inquirer": "^3.0.6",
     "lodash": "^4.17.4",
     "minimist": "^1.2.0",
